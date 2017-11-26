@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">Prithvi</string>
+
+    <!-- intro screen -->
+    <string name="firstslideheader">Prithvi</string>
+    <string name="firstslidecontent">Detailed insight of countries all around the world</string>
+    <string name="secondslideheader">At Your Fingertips</string>
+    <string name="secondslidecontent">Capitals, currency, borders, timezones and lots more, all at your fingertips</string>
+    <string name="thirdslidesheader">Even More</string>
+    <string name="thirdslidecontent">Get all these even when you are offline, pretty cool huh?</string>
+    <string name="github">GitHub</string>
+    <string name="viewgithub">View Source On GitHub</string>
+
+</resources>
