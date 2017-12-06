@@ -15,6 +15,12 @@ public class AppCommonValues {
     /* --- TinyDB tags here --- */
     public static final String _ISFIRSTRUNTAG = "isFirstRun";
 
+    /* realm db name */
+    public static final String CONFIGNAME = "prithvidb.realm";
+
+    /* a boolean to determine if the result came after a successful rest api call */
+    public static boolean DIDRESULTCAMEAFTERRESTCALL = false;
+
     /* page tag, used for redirection */
     public static final int _INTROPAGE = 1;
     public static final int _DASHBOARDPAGE = 2;

@@ -26,4 +26,16 @@ class RegionalBlocModel {
     public fun getName(): String {
         return name
     }
+
+    override fun toString(): String {
+        if(name != null) {
+            if(acronym != null) {
+                return "$name($acronym)"
+            } else {
+                return name
+            }
+        } else {
+            return name!!
+        }
+    }
 }

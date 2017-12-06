@@ -10,7 +10,8 @@
     app:cardBackgroundColor="#fff"
     app:cardCornerRadius="3dp"
     app:cardElevation="3dp"
-    app:cardUseCompatPadding="true">
+    app:cardUseCompatPadding="true"
+    android:background="@drawable/left_bordered_box">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -34,6 +35,16 @@
             android:layout_gravity="center"
             android:background="@color/lightgray"/>
 
+        <View
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:id="@+id/vwLine2"
+            android:layout_marginTop="18dp"
+            android:layout_marginBottom="12dp"
+            android:layout_marginLeft="1dp"
+            android:layout_gravity="center"
+            android:background="@color/lightgray"/>
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -50,6 +61,18 @@
                 android:textColor="@color/lightblack"
                 android:textSize="24sp"
                 android:textStyle="bold" />
+
+            <View
+                android:layout_width="100dp"
+                android:layout_height="1dp"
+                android:background="@android:color/darker_gray"/>
+
+            <View
+                android:layout_width="100dp"
+                android:layout_height="1dp"
+                android:layout_marginLeft="7dp"
+                android:layout_marginTop="1dp"
+                android:background="@android:color/darker_gray"/>
 
             <LinearLayout
                 android:layout_width="match_parent"

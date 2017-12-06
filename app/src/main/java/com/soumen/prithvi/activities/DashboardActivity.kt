@@ -1,6 +1,7 @@
 package com.soumen.prithvi.activities
 
-import android.app.Dialog
+import android.app.AlertDialog
+import android.content.DialogInterface
 import android.content.Intent
 import android.net.Uri
 import android.support.v7.app.AppCompatActivity
@@ -18,12 +19,18 @@ import android.view.MenuItem
 import android.view.View
 import butterknife.BindView
 import butterknife.ButterKnife
+import com.soumen.prithvi.backgroundtasks.BackUpCountryData
 import com.soumen.prithvi.R
 import com.soumen.prithvi.adapters.CountryAdapter
+import com.soumen.prithvi.dbops.CountryModel
 import com.soumen.prithvi.extras.AppCommonValues
 import com.soumen.prithvi.models.Country
 import com.soumen.prithvi.rest.ApiInterface
 import com.soumen.prithvi.rest.ApiClient
+import io.realm.Realm
+import io.realm.RealmQuery
+import io.realm.RealmResults
+import org.jetbrains.anko.toast
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -39,8 +46,12 @@ class DashboardActivity : AppCompatActivity() {
     @BindView(R.id.rclCountryList)
     lateinit var rclCountryList: RecyclerView
 
+    lateinit var call: Call<List<Country>>
+    lateinit var apiService: ApiInterface
     lateinit var allCountryList: ArrayList<Country>
     lateinit var allCountryAdapter: CountryAdapter
+
+    lateinit var realm: Realm
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,7 +59,7 @@ class DashboardActivity : AppCompatActivity() {
         setContentView(R.layout.activity_dashboard)
         ButterKnife.bind(this)
 
-        rclCountryList.setLayoutManager(LinearLayoutManager(this@DashboardActivity));
+        rclCountryList.setLayoutManager(LinearLayoutManager(this@DashboardActivity))
 
         setSupportActionBar(prithviToolbar)
         setUpPrithviDrawer()
@@ -123,14 +134,14 @@ class DashboardActivity : AppCompatActivity() {
 
     private fun proceedToShowCountryData() {
         if(AppCommonValues.isInternetAvailable(this@DashboardActivity)) {
-            val apiService = ApiClient.getClient().create(ApiInterface::class.java)
-            val call = apiService.getAllCountryList()
+            apiService = ApiClient.getClient().create(ApiInterface::class.java)
+            call = apiService.getAllCountryList()
             call.enqueue(object : Callback<List<Country>> {
                 override fun onResponse(call: Call<List<Country>>, response: Response<List<Country>>) {
                     for(i in 0 until response.body()!!.size) {
-                        allCountryList = ArrayList(response.body()!!)
-                        allCountryAdapter = CountryAdapter(this@DashboardActivity, allCountryList)
-                        rclCountryList.adapter = allCountryAdapter
+                        AppCommonValues.DIDRESULTCAMEAFTERRESTCALL = true
+                        startBackingUpData(ArrayList(response.body()))
+                        populateCountryList(ArrayList(response.body()))
                     }
                 }
                 override fun onFailure(call: Call<List<Country>>, t: Throwable) {
@@ -138,6 +149,51 @@ class DashboardActivity : AppCompatActivity() {
                 }
             })
         } else {
+            AppCommonValues.DIDRESULTCAMEAFTERRESTCALL = false
+            proceedWithOfflineRoutine()
+        }
+    }
+
+    /**
+     * Start backing up data in a background thread(here asynctask)
+     */
+    private fun startBackingUpData(data: ArrayList<Country>) {
+        var b1: BackUpCountryData = BackUpCountryData(this@DashboardActivity, data)
+        b1.execute()
+        /* put interface here for callback */
+    }
+
+    /**
+     * Populates the recyclerview with data
+     */
+    private fun populateCountryList(data: ArrayList<Country>) {
+        allCountryList = data
+        allCountryAdapter = CountryAdapter(this@DashboardActivity, allCountryList)
+        rclCountryList.adapter = allCountryAdapter
+    }
+
+    private fun proceedWithOfflineRoutine() {
+        var builder: AlertDialog.Builder = AlertDialog.Builder(this@DashboardActivity)
+        builder.setTitle(R.string.app_name)
+        builder.setMessage("You are offline. Would you like to work offline with previously downloaded data?")
+        builder.setPositiveButton("Yes", DialogInterface.OnClickListener { dialogInterface, i ->
+            checkIfOfflineDataIsAvailable()
+        })
+        builder.setNegativeButton("No", DialogInterface.OnClickListener { dialogInterface, i ->
+            toast("Please turn on your wifi or mobile data to download details")
+        })
+        builder.show()
+    }
+
+    private fun checkIfOfflineDataIsAvailable() {
+        Realm.init(this@DashboardActivity)
+        realm = Realm.getDefaultInstance()
+        var query: RealmQuery<CountryModel> = realm.where(CountryModel::class.java)
+        var results: RealmResults<CountryModel> = query.findAll()
+        if(results.size > 0) {
+            toast("Data, lots of " + results.size)
+        } else {
+            toast("Oopsie, no data")
         }
     }
 

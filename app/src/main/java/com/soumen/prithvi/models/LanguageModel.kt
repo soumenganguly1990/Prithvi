@@ -46,4 +46,16 @@ class LanguageModel {
     public fun getNativeName(): String {
         return nativeName
     }
+
+    override fun toString(): String {
+        if(name != null) {
+            if(nativeName != null) {
+                return "$name($nativeName)"
+            } else {
+                return name
+            }
+        } else {
+            return name!!
+        }
+    }
 }

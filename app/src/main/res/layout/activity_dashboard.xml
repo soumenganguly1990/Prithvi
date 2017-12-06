@@ -13,7 +13,8 @@
     <LinearLayout
         android:id="@+id/revMainViewHolder"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:background="@android:color/white">
 
         <LinearLayout
             android:id="@+id/linMainRevealChild"
@@ -39,7 +40,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent">
 
-                <!-- 0th view an image -->
+                <!--&lt;!&ndash; 0th view an image &ndash;&gt;
                 <ImageView
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
@@ -47,11 +48,11 @@
                     android:scaleType="centerCrop"
                     android:src="@drawable/earth" />
 
-                <!-- 1st view, a shading -->
+                &lt;!&ndash; 1st view, a shading &ndash;&gt;
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:background="#BB000000" />
+                    android:background="#BB000000" />-->
 
                 <!-- 2nd view -->
                 <RelativeLayout

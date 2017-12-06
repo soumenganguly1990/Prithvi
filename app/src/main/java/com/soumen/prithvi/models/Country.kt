@@ -27,7 +27,7 @@ class Country {
     @SerializedName("population")
     private var population: Long? = null
     @SerializedName("latlng")
-    private lateinit var latlng: DoubleArray
+    private lateinit var latlng: Array<Double>
     @SerializedName("demonym")
     private lateinit var demonym: String
     @SerializedName("area")
@@ -41,7 +41,7 @@ class Country {
     @SerializedName("nativeName")
     private lateinit var nativeName: String
     @SerializedName("numericCode")
-    private lateinit var numericCode: String
+    private var numericCode: String? = null
     @SerializedName("currencies")
     private lateinit var currencies: List<CurrencyModel>
     @SerializedName("languages")
@@ -131,11 +131,11 @@ class Country {
         return population!!
     }
 
-    public fun setLatlng(latlng: DoubleArray) {
+    public fun setLatlng(latlng: Array<Double>) {
         this.latlng = latlng
     }
 
-    public fun getLatLng(): DoubleArray {
+    public fun getLatlng(): Array<Double> {
         return latlng
     }
 
@@ -152,7 +152,11 @@ class Country {
     }
 
     public fun getArea(): Double {
-        return area!!
+        if(area == null) {
+            return 0.0
+        } else {
+            return area!!
+        }
     }
 
     public fun setGini(gini: Double) {
@@ -160,10 +164,14 @@ class Country {
     }
 
     public fun getGini(): Double {
-        return gini!!
+        if(gini == null) {
+            return 0.0
+        } else {
+            return gini!!
+        }
     }
 
-    public fun setTimeZones(timezones: Array<String>) {
+    public fun setTimezones(timezones: Array<String>) {
         this.timezones = timezones
     }
 
@@ -192,7 +200,11 @@ class Country {
     }
 
     public fun getNumericCode(): String {
-        return numericCode
+        if(numericCode == null) {
+            return ""
+        } else {
+            return numericCode!!
+        }
     }
 
     public fun setCurrencies(currencies: List<CurrencyModel>) {
