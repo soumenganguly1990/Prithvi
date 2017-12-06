@@ -2,6 +2,8 @@ package com.soumen.prithvi.backgroundtasks;
 
 import android.content.Context;
 import android.os.AsyncTask;
+
+import com.soumen.prithvi.callbackinterfaces.DataBackupInterface;
 import com.soumen.prithvi.dbops.CountryModel;
 import com.soumen.prithvi.models.Country;
 import java.util.ArrayList;
@@ -12,15 +14,19 @@ import io.realm.Realm;
  * Created by Soumen on 06-12-2017.
  */
 
-public class BackUpCountryData extends AsyncTask<String, String, String> {
+public class BackUpCountryData extends AsyncTask<String, Integer, Integer> {
 
     ArrayList<Country> countryList;
+    ArrayList<CountryModel> countryModelArrayList;
     Context context;
     Realm realm;
+    int count  = 0;
+    public DataBackupInterface mDataBackupInterface = null;
 
     public BackUpCountryData(Context context, ArrayList<Country> countryList) {
         this.countryList = countryList;
         this.context = context;
+        this.countryModelArrayList = new ArrayList();
     }
 
     @Override
@@ -29,7 +35,7 @@ public class BackUpCountryData extends AsyncTask<String, String, String> {
     }
 
     @Override
-    protected String doInBackground(String... strings) {
+    protected Integer doInBackground(String... strings) {
         Realm.init(context);
         realm = Realm.getDefaultInstance();
         for(int i = 0;i < countryList.size();i ++) {
@@ -61,8 +67,11 @@ public class BackUpCountryData extends AsyncTask<String, String, String> {
             realm.beginTransaction();
             realm.insertOrUpdate(c1);
             realm.commitTransaction();
+
+            count ++;
+            countryModelArrayList.add(c1);
         }
-        return null;
+        return count;
     }
 
     /**
@@ -106,7 +115,12 @@ public class BackUpCountryData extends AsyncTask<String, String, String> {
     }
 
     @Override
-    protected void onPostExecute(String s) {
-        super.onPostExecute(s);
+    protected void onPostExecute(Integer i) {
+        super.onPostExecute(i);
+        if(i == countryList.size()) {
+            mDataBackupInterface.onBackupCompleted(true, countryModelArrayList);
+        } else {
+            mDataBackupInterface.onBackupCompleted(false, null);
+        }
     }
 }

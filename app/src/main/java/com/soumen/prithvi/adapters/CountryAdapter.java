@@ -20,6 +20,7 @@ import com.bumptech.glide.load.model.StreamEncoder;
 import com.bumptech.glide.load.resource.file.FileToStreamDecoder;
 import com.caverock.androidsvg.SVG;
 import com.soumen.prithvi.R;
+import com.soumen.prithvi.dbops.CountryModel;
 import com.soumen.prithvi.models.Country;
 import com.soumen.prithvi.svg.SvgDecoder;
 import com.soumen.prithvi.svg.SvgDrawableTranscoder;
@@ -37,9 +38,9 @@ public class CountryAdapter extends RecyclerView.Adapter<CountryAdapter.CountryH
 
     private int lastPosition = -1;
     Context context;
-    ArrayList<Country> countryList;
+    ArrayList<CountryModel> countryList;
 
-    public CountryAdapter(Context context, ArrayList<Country> countryList) {
+    public CountryAdapter(Context context, ArrayList<CountryModel> countryList) {
         this.context = context;
         this.countryList = countryList;
     }
@@ -53,7 +54,7 @@ public class CountryAdapter extends RecyclerView.Adapter<CountryAdapter.CountryH
 
     @Override
     public void onBindViewHolder(CountryHolder holder, int position) {
-        Country country = countryList.get(position);
+        CountryModel country = countryList.get(position);
         if (country.getFlag() == null || country.getFlag().equalsIgnoreCase("")) {
             holder.imgFlag.setImageResource(android.R.drawable.stat_sys_warning);
             Glide.clear(holder.imgFlag);
@@ -68,7 +69,7 @@ public class CountryAdapter extends RecyclerView.Adapter<CountryAdapter.CountryH
         if (country.getRegion() != null || !country.getRegion().equalsIgnoreCase("")) {
             holder.txtCountryRegion.setText(holder.txtCountryRegion.getText().toString() + ", " + country.getRegion());
         }
-        holder.txtCountryCurrency.setText(getFormattedString(new ArrayList(countryList.get(position).getCurrencies())));
+        holder.txtCountryCurrency.setText(countryList.get(position).getCurrencies());
         setAnimation(holder.itemView, position);
     }
 

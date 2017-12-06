@@ -22,6 +22,7 @@ import butterknife.ButterKnife
 import com.soumen.prithvi.backgroundtasks.BackUpCountryData
 import com.soumen.prithvi.R
 import com.soumen.prithvi.adapters.CountryAdapter
+import com.soumen.prithvi.callbackinterfaces.DataBackupInterface
 import com.soumen.prithvi.dbops.CountryModel
 import com.soumen.prithvi.extras.AppCommonValues
 import com.soumen.prithvi.models.Country
@@ -35,7 +36,7 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
-class DashboardActivity : AppCompatActivity() {
+class DashboardActivity : AppCompatActivity(), DataBackupInterface {
 
     @BindView(R.id.prithviDrawer)
     lateinit var dupliDrawer: DrawerLayout
@@ -49,6 +50,7 @@ class DashboardActivity : AppCompatActivity() {
     lateinit var call: Call<List<Country>>
     lateinit var apiService: ApiInterface
     lateinit var allCountryList: ArrayList<Country>
+    var countryModelArrayList: ArrayList<CountryModel>? = null
     lateinit var allCountryAdapter: CountryAdapter
 
     lateinit var realm: Realm
@@ -138,11 +140,9 @@ class DashboardActivity : AppCompatActivity() {
             call = apiService.getAllCountryList()
             call.enqueue(object : Callback<List<Country>> {
                 override fun onResponse(call: Call<List<Country>>, response: Response<List<Country>>) {
-                    for(i in 0 until response.body()!!.size) {
                         AppCommonValues.DIDRESULTCAMEAFTERRESTCALL = true
-                        startBackingUpData(ArrayList(response.body()))
-                        populateCountryList(ArrayList(response.body()))
-                    }
+                        allCountryList = ArrayList(response.body())
+                        startBackingUpData(allCountryList)
                 }
                 override fun onFailure(call: Call<List<Country>>, t: Throwable) {
                     Log.e("Failed", t.localizedMessage)
@@ -160,15 +160,20 @@ class DashboardActivity : AppCompatActivity() {
     private fun startBackingUpData(data: ArrayList<Country>) {
         var b1: BackUpCountryData = BackUpCountryData(this@DashboardActivity, data)
         b1.execute()
-        /* put interface here for callback */
+        b1.mDataBackupInterface = this@DashboardActivity
+    }
+
+    override fun onBackupCompleted(done: Boolean, countryModelArrayList: ArrayList<CountryModel>) {
+        toast("data backup completed")
+        this.countryModelArrayList = countryModelArrayList
+        populateCountryList(countryModelArrayList)
     }
 
     /**
      * Populates the recyclerview with data
      */
-    private fun populateCountryList(data: ArrayList<Country>) {
-        allCountryList = data
-        allCountryAdapter = CountryAdapter(this@DashboardActivity, allCountryList)
+    private fun populateCountryList(data: ArrayList<CountryModel>) {
+        allCountryAdapter = CountryAdapter(this@DashboardActivity, data)
         rclCountryList.adapter = allCountryAdapter
     }
 
@@ -191,7 +196,8 @@ class DashboardActivity : AppCompatActivity() {
         var query: RealmQuery<CountryModel> = realm.where(CountryModel::class.java)
         var results: RealmResults<CountryModel> = query.findAll()
         if(results.size > 0) {
-            toast("Data, lots of " + results.size)
+            Log.e("found", "data found")
+            populateCountryList(ArrayList(results))
         } else {
             toast("Oopsie, no data")
         }
