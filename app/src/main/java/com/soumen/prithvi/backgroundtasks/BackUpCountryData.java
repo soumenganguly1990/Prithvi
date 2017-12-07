@@ -2,7 +2,6 @@ package com.soumen.prithvi.backgroundtasks;
 
 import android.content.Context;
 import android.os.AsyncTask;
-
 import com.soumen.prithvi.callbackinterfaces.DataBackupInterface;
 import com.soumen.prithvi.dbops.CountryModel;
 import com.soumen.prithvi.models.Country;

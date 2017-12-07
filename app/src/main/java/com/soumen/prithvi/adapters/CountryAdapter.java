@@ -5,12 +5,15 @@ import android.graphics.drawable.PictureDrawable;
 import android.net.Uri;
 import android.os.Handler;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.Animation;
 import android.view.animation.ScaleAnimation;
+import android.widget.Filter;
+import android.widget.Filterable;
 import android.widget.ImageView;
 import android.widget.TextView;
 import com.bumptech.glide.GenericRequestBuilder;
@@ -21,12 +24,12 @@ import com.bumptech.glide.load.resource.file.FileToStreamDecoder;
 import com.caverock.androidsvg.SVG;
 import com.soumen.prithvi.R;
 import com.soumen.prithvi.dbops.CountryModel;
-import com.soumen.prithvi.models.Country;
 import com.soumen.prithvi.svg.SvgDecoder;
 import com.soumen.prithvi.svg.SvgDrawableTranscoder;
 import com.soumen.prithvi.svg.SvgSoftwareLayerSetter;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.List;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 
@@ -34,15 +37,20 @@ import butterknife.ButterKnife;
  * Created by Soumen on 04-12-2017.
  */
 
-public class CountryAdapter extends RecyclerView.Adapter<CountryAdapter.CountryHolder> {
+public class CountryAdapter extends RecyclerView.Adapter<CountryAdapter.CountryHolder> implements Filterable {
 
     private int lastPosition = -1;
-    Context context;
-    ArrayList<CountryModel> countryList;
+    private Context context;
+    private ArrayList<CountryModel> countryList;
+
+    /* strictly for search filtering purpose */
+    private ArrayList<CountryModel> filteredCountryList;
+    private CountryFilter countryFilter;
 
     public CountryAdapter(Context context, ArrayList<CountryModel> countryList) {
         this.context = context;
         this.countryList = countryList;
+        this.filteredCountryList = new ArrayList();
     }
 
     @Override
@@ -96,7 +104,6 @@ public class CountryAdapter extends RecyclerView.Adapter<CountryAdapter.CountryH
 
     /**
      * Loads the svg images into the imageview with the help of androidsvg and glide
-     *
      * @param imgView
      * @param url
      */
@@ -139,6 +146,61 @@ public class CountryAdapter extends RecyclerView.Adapter<CountryAdapter.CountryH
         }
     }
 
+    @Override
+    public Filter getFilter() {
+        if(countryFilter == null)
+            countryFilter = new CountryFilter(this, countryList);
+        return countryFilter;
+    }
+
+    /**
+     * The filter class for countries
+     */
+    class CountryFilter extends Filter {
+
+        private final CountryAdapter adapter;
+        private final List<CountryModel> originalList;
+        private final List<CountryModel> filteredList;
+
+        private CountryFilter(CountryAdapter adapter, ArrayList<CountryModel> originalList) {
+            super();
+            this.adapter = adapter;
+            this.originalList = new ArrayList(originalList);
+            this.filteredList = new ArrayList<>();
+        }
+
+        @Override
+        protected FilterResults performFiltering(CharSequence constraint) {
+            filteredList.clear();
+            final FilterResults results = new FilterResults();
+            if (constraint.length() == 0) {
+                filteredList.addAll(originalList);
+            } else {
+                final String filterPattern = constraint.toString().toLowerCase().trim();
+                for (final CountryModel countryModel : originalList) {
+                    if (countryModel.getName().toLowerCase().contains(filterPattern)) {
+                        filteredList.add(countryModel);
+                    }
+                }
+            }
+            results.values = filteredList;
+            results.count = filteredList.size();
+            return results;
+        }
+        @Override
+        protected void publishResults(CharSequence constraint, FilterResults results) {
+            adapter.filteredCountryList.clear();
+            adapter.filteredCountryList.addAll((ArrayList<CountryModel>) results.values);
+            for(int i = 0;i < ((ArrayList<CountryModel>) results.values).size();i ++) {
+                Log.e("name", ((ArrayList<CountryModel>) results.values).get(i).getName());
+            }
+            adapter.notifyDataSetChanged();
+        }
+    }
+
+    /**
+     * The viewholder class
+     */
     class CountryHolder extends RecyclerView.ViewHolder {
 
         @BindView(R.id.imgFlag)
