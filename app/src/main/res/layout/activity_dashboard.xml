@@ -66,6 +66,12 @@
                         android:layout_height="match_parent"
                         android:id="@+id/rclCountryList"/>
 
+                    <android.support.v7.widget.RecyclerView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:id="@+id/rclSearchedList"
+                        android:visibility="gone"/>
+
                 </RelativeLayout>
 
             </FrameLayout>

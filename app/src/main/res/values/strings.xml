@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name">Prithvi</string>
+    <string name="theappknowsall">The app that knows it all</string>
     <string name="bannertext">Your Pocket World Atlas</string>
 
     <!-- intro screen -->
@@ -19,5 +20,19 @@
 
     <string name="opendrawer">Open</string>
     <string name="closedrawer">Close</string>
+
+    <string name="nocountrydata">Sorry, could not fetch country details from server</string>
+    <string name="youareoffline">You are offline. Would you like to continue with previously downloaded data?</string>
+    <string name="wifiadvice">Please turn on your wifi or mobile data to download country details and then press the Sync option at the top right corner of the screen.</string>
+    <string name="noofflinedata">Sorry, but not offline data was found. Please enable wifi or mobile data and Sync app by pressing the sync icon at top right corner of the screen.</string>
+    <string name="sync">Sync application data with server?</string>
+    <string name="nothingentered">Nothing entered to be searched</string>
+    <string name="pleaseclosesearch">Please close search by pressing the back button</string>
+
+    <string name="about">Prithvi is developed for Techgig mobility hackathon using\n1. Android Studio IDE\n2. Kotlin and Java as programming language\n3. Retrofit for rest api call\n4. Realm DB for offline data storage\n5. Butterknife for view binding\n6.Glide for image loading and caching\n7. CircleImageView for crcular imageviews\n8. Lottie for loading and displaying lottie anims\n9. Anko for making life a little easier\n\nDesigned And Developed By Soumen Ganguly</string>
+    <string name="ok">OK</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="close">Close</string>
 
 </resources>

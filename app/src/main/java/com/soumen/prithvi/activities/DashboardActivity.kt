@@ -1,7 +1,9 @@
 package com.soumen.prithvi.activities
 
+import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.app.Dialog
+import android.app.ProgressDialog
 import android.app.SearchManager
 import android.content.Context
 import android.content.DialogInterface
@@ -18,12 +20,14 @@ import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.inputmethod.InputMethodManager
 import butterknife.BindView
 import butterknife.ButterKnife
 import com.soumen.prithvi.backgroundtasks.BackUpCountryData
 import com.soumen.prithvi.R
 import com.soumen.prithvi.adapters.CountryAdapter
 import com.soumen.prithvi.callbackinterfaces.DataBackupInterface
+import com.soumen.prithvi.callbackinterfaces.SearchResultInterface
 import com.soumen.prithvi.dbops.CountryModel
 import com.soumen.prithvi.extras.AppCommonValues
 import com.soumen.prithvi.models.Country
@@ -32,12 +36,13 @@ import com.soumen.prithvi.rest.ApiClient
 import io.realm.Realm
 import io.realm.RealmQuery
 import io.realm.RealmResults
+import org.jetbrains.anko.longToast
 import org.jetbrains.anko.toast
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
-class DashboardActivity : AppCompatActivity(), DataBackupInterface, SearchView.OnQueryTextListener {
+class DashboardActivity : AppCompatActivity(), DataBackupInterface, SearchView.OnQueryTextListener, SearchResultInterface {
 
     @BindView(R.id.prithviDrawer)
     lateinit var dupliDrawer: DrawerLayout
@@ -47,17 +52,24 @@ class DashboardActivity : AppCompatActivity(), DataBackupInterface, SearchView.O
     lateinit var prithviToolbar: Toolbar
     @BindView(R.id.rclCountryList)
     lateinit var rclCountryList: RecyclerView
+    @BindView(R.id.rclSearchedList)
+    lateinit var rclSearchedList: RecyclerView
 
     /* country related arraylists and adapters */
     lateinit var call: Call<List<Country>>
     lateinit var apiService: ApiInterface
+    lateinit var pDialog: ProgressDialog
     lateinit var allCountryList: ArrayList<Country>
     var countryModelArrayList: ArrayList<CountryModel>? = null
     lateinit var allCountryAdapter: CountryAdapter
+    var searchedCountryAdapter: CountryAdapter? = null
+
     /* realm db object */
     lateinit var realm: Realm
-    /* adding search manager */
+
+    /* adding search manager for searching countries by name */
     lateinit var searchManager: SearchManager
+    lateinit var searchView: SearchView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,7 +77,8 @@ class DashboardActivity : AppCompatActivity(), DataBackupInterface, SearchView.O
         setContentView(R.layout.activity_dashboard)
         ButterKnife.bind(this)
 
-        rclCountryList.setLayoutManager(LinearLayoutManager(this@DashboardActivity))
+        rclCountryList.layoutManager = LinearLayoutManager(this@DashboardActivity)
+        rclSearchedList.layoutManager = LinearLayoutManager(this@DashboardActivity)
 
         setSupportActionBar(prithviToolbar)
         setUpPrithviDrawer()
@@ -74,8 +87,18 @@ class DashboardActivity : AppCompatActivity(), DataBackupInterface, SearchView.O
     }
 
     override fun onBackPressed() {
-        /* overriding backpress, app just needs to be minimized */
-        moveTaskToBack(true)
+        if (!searchView.isIconified()) {
+            searchView.onActionViewCollapsed()
+            searchView.setIconified(true)
+            if(rclSearchedList.visibility == View.VISIBLE && isKeyboardShown()) {
+                searchManager.stopSearch()
+                closeKeyboard()
+                makeActualListVisibleSearchListInvisible()
+            }
+            super.onBackPressed()
+        } else {
+            super.onBackPressed()
+        }
     }
 
     /**
@@ -87,6 +110,7 @@ class DashboardActivity : AppCompatActivity(), DataBackupInterface, SearchView.O
             override fun onDrawerClosed(drawerView: View?) {
                 super.onDrawerClosed(drawerView)
             }
+
             override fun onDrawerOpened(drawerView: View?) {
                 super.onDrawerOpened(drawerView)
             }
@@ -138,17 +162,34 @@ class DashboardActivity : AppCompatActivity(), DataBackupInterface, SearchView.O
         startActivity(i)
     }
 
+    private fun spawnDialog() {
+        pDialog = ProgressDialog.show(this@DashboardActivity,
+                getString(R.string.app_name), "Please wait...")
+    }
+
+    private fun dismissDialog() {
+        try {
+            pDialog.dismiss()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     private fun proceedToShowCountryData() {
-        if(AppCommonValues.isInternetAvailable(this@DashboardActivity)) {
+        if (AppCommonValues.isInternetAvailable(this@DashboardActivity)) {
             apiService = ApiClient.getClient().create(ApiInterface::class.java)
+            spawnDialog()
             call = apiService.getAllCountryList()
             call.enqueue(object : Callback<List<Country>> {
                 override fun onResponse(call: Call<List<Country>>, response: Response<List<Country>>) {
-                        allCountryList = ArrayList(response.body())
-                        startBackingUpData(allCountryList)
+                    allCountryList = ArrayList(response.body())
+                    startBackingUpData(allCountryList)
+                    dismissDialog()
                 }
+
                 override fun onFailure(call: Call<List<Country>>, t: Throwable) {
-                    toast("Sorry, could not fetch country details from server")
+                    toast(R.string.nocountrydata)
+                    proceedWithOfflineRoutine()
                 }
             })
         } else {
@@ -166,7 +207,6 @@ class DashboardActivity : AppCompatActivity(), DataBackupInterface, SearchView.O
     }
 
     override fun onBackupCompleted(done: Boolean, countryModelArrayList: ArrayList<CountryModel>) {
-        toast("data backup completed")
         this.countryModelArrayList = countryModelArrayList
         populateCountryList(countryModelArrayList)
     }
@@ -176,20 +216,37 @@ class DashboardActivity : AppCompatActivity(), DataBackupInterface, SearchView.O
      */
     private fun populateCountryList(data: ArrayList<CountryModel>) {
         allCountryAdapter = CountryAdapter(this@DashboardActivity, data)
+        allCountryAdapter.mSearchResultInterface = this@DashboardActivity
         rclCountryList.adapter = allCountryAdapter
+    }
+
+    private fun populateSearchedCountryList(data: ArrayList<CountryModel>) {
+        searchedCountryAdapter = CountryAdapter(this@DashboardActivity, data)
+        rclSearchedList.adapter = searchedCountryAdapter
+    }
+
+    private fun makeActualListVisibleSearchListInvisible() {
+        rclCountryList.visibility = View.VISIBLE
+        rclSearchedList.visibility = View.GONE
+        searchedCountryAdapter = null
+    }
+
+    private fun makeSearchListVisibleActualListInvisible() {
+        rclSearchedList.visibility = View.VISIBLE
+        rclCountryList.visibility = View.GONE
     }
 
     private fun proceedWithOfflineRoutine() {
         var builder: AlertDialog.Builder = AlertDialog.Builder(this@DashboardActivity)
         builder.setTitle(R.string.app_name)
-        builder.setMessage("You are offline. Would you like to continue with previously downloaded data?")
+        builder.setMessage(R.string.youareoffline)
         builder.setPositiveButton("Yes", DialogInterface.OnClickListener { dialogInterface, i ->
             dialogInterface.dismiss()
             checkIfOfflineDataIsAvailable()
         })
         builder.setNegativeButton("No", DialogInterface.OnClickListener { dialogInterface, i ->
             dialogInterface.dismiss()
-            toast("Please turn on your wifi or mobile data to download country details and then press the Sync option at the top right corner of the screen.")
+            longToast(R.string.wifiadvice)
         })
         builder.show()
     }
@@ -199,17 +256,22 @@ class DashboardActivity : AppCompatActivity(), DataBackupInterface, SearchView.O
         realm = Realm.getDefaultInstance()
         var query: RealmQuery<CountryModel> = realm.where(CountryModel::class.java)
         var results: RealmResults<CountryModel> = query.findAll()
-        if(results.size > 0) {
-            populateCountryList(ArrayList(results))
+        results.load()
+        if (results.size > 0) {
+            this.countryModelArrayList = ArrayList()
+            countryModelArrayList!!.addAll(ArrayList(realm.copyFromRealm(results)))
         } else {
             showNoOfflineDataFoundDialog()
+            return
         }
+        realm.close()
+        populateCountryList(countryModelArrayList!!)
     }
 
     private fun showNoOfflineDataFoundDialog() {
         var builder: AlertDialog.Builder = AlertDialog.Builder(this@DashboardActivity)
         builder.setTitle(R.string.app_name)
-        builder.setMessage("Sorry, but not offline data was found. Please enable wifi or mobile data and Sync app by pressing the sync icon at top right corner of the screen.")
+        builder.setMessage(R.string.noofflinedata)
         builder.setPositiveButton("OK", DialogInterface.OnClickListener { dialogInterface, i ->
             dialogInterface.dismiss()
         })
@@ -232,7 +294,7 @@ class DashboardActivity : AppCompatActivity(), DataBackupInterface, SearchView.O
     private fun showRecyncDialog() {
         var builder: AlertDialog.Builder = AlertDialog.Builder(this@DashboardActivity)
         builder.setTitle(R.string.app_name)
-        builder.setMessage("Sync application data with server?")
+        builder.setMessage(R.string.sync)
         builder.setPositiveButton("Yes", DialogInterface.OnClickListener { dialogInterface, i ->
             dialogInterface.dismiss()
             proceedToShowCountryData()
@@ -246,9 +308,9 @@ class DashboardActivity : AppCompatActivity(), DataBackupInterface, SearchView.O
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_dashboard, menu)
 
-        searchManager = getSystemService(Context.SEARCH_SERVICE)as SearchManager
+        searchManager = getSystemService(Context.SEARCH_SERVICE) as SearchManager
         var searchMenuItem = menu.findItem(R.id.mnuSearch)
-        var searchView = searchMenuItem.getActionView() as SearchView
+        searchView = searchMenuItem.getActionView() as SearchView
         searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()))
         searchView.setSubmitButtonEnabled(true)
         searchView.setOnQueryTextListener(this)
@@ -256,21 +318,59 @@ class DashboardActivity : AppCompatActivity(), DataBackupInterface, SearchView.O
     }
 
     override fun onQueryTextSubmit(query: String?): Boolean {
-        if(!query.toString().equals(""))
-            allCountryAdapter.filter.filter(query)
+        if (query.toString().equals("")) {
+            toast(R.string.nothingentered)
+        } else {
+            if(countryModelArrayList == null || countryModelArrayList!!.size == 0) {
+                /* do nothing, no data is present */
+            } else {
+                allCountryAdapter.filter.filter(query)
+            }
+        }
         return true
     }
 
     override fun onQueryTextChange(newText: String?): Boolean {
-        if(!newText.toString().equals(""))
-            allCountryAdapter.filter.filter(newText)
+        if (newText.toString().equals("")) {
+            makeActualListVisibleSearchListInvisible()
+        } else {
+            if(countryModelArrayList == null || countryModelArrayList!!.size == 0) {
+                /* do nothing, no data */
+            } else {
+                allCountryAdapter.filter.filter(newText)
+            }
+        }
         return true
     }
 
+    override fun onSearchResultGenerated(searchResults: java.util.ArrayList<CountryModel>?) {
+        if (searchResults == null || searchResults.size == 0) {
+            makeActualListVisibleSearchListInvisible()
+        } else {
+            makeSearchListVisibleActualListInvisible()
+            populateSearchedCountryList(searchResults!!)
+        }
+    }
+
+    @SuppressLint("ServiceCast")
+    private fun isKeyboardShown(): Boolean {
+        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        return imm.isAcceptingText()
+    }
+
+    private fun closeKeyboard() {
+        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.hideSoftInputFromWindow(searchView.getWindowToken(), 0)
+    }
+
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when(item.itemId) {
+        when (item.itemId) {
             R.id.mnuSync -> {
-                showRecyncDialog()
+                if(!searchView.isIconified) {
+                    toast(R.string.pleaseclosesearch)
+                } else {
+                    showRecyncDialog()
+                }
             }
         }
         return true

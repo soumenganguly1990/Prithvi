@@ -23,6 +23,7 @@ import com.bumptech.glide.load.model.StreamEncoder;
 import com.bumptech.glide.load.resource.file.FileToStreamDecoder;
 import com.caverock.androidsvg.SVG;
 import com.soumen.prithvi.R;
+import com.soumen.prithvi.callbackinterfaces.SearchResultInterface;
 import com.soumen.prithvi.dbops.CountryModel;
 import com.soumen.prithvi.svg.SvgDecoder;
 import com.soumen.prithvi.svg.SvgDrawableTranscoder;
@@ -46,6 +47,7 @@ public class CountryAdapter extends RecyclerView.Adapter<CountryAdapter.CountryH
     /* strictly for search filtering purpose */
     private ArrayList<CountryModel> filteredCountryList;
     private CountryFilter countryFilter;
+    public SearchResultInterface mSearchResultInterface = null;
 
     public CountryAdapter(Context context, ArrayList<CountryModel> countryList) {
         this.context = context;
@@ -83,7 +85,6 @@ public class CountryAdapter extends RecyclerView.Adapter<CountryAdapter.CountryH
 
     /**
      * Drops the [, ] characters from the a list's tostring equiv return
-     *
      * @param someList
      * @return
      */
@@ -190,11 +191,15 @@ public class CountryAdapter extends RecyclerView.Adapter<CountryAdapter.CountryH
         @Override
         protected void publishResults(CharSequence constraint, FilterResults results) {
             adapter.filteredCountryList.clear();
-            adapter.filteredCountryList.addAll((ArrayList<CountryModel>) results.values);
-            for(int i = 0;i < ((ArrayList<CountryModel>) results.values).size();i ++) {
-                Log.e("name", ((ArrayList<CountryModel>) results.values).get(i).getName());
+            if(((ArrayList<CountryModel>)results.values) == null || ((ArrayList<CountryModel>)results.values).size() == 0) {
+                mSearchResultInterface.onSearchResultGenerated(null);
+            } else {
+                adapter.filteredCountryList.addAll((ArrayList<CountryModel>) results.values);
+                mSearchResultInterface.onSearchResultGenerated((ArrayList<CountryModel>) results.values);
+                for(int i = 0;i < ((ArrayList<CountryModel>) results.values).size();i ++) {
+                    Log.e("name", ((ArrayList<CountryModel>) results.values).get(i).getName());
+                }
             }
-            adapter.notifyDataSetChanged();
         }
     }
 
